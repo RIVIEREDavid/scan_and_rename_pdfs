@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 import fnmatch
 import typer
+import streamlit as st
 
 
 # déclaration des constantes
@@ -14,8 +15,10 @@ SOURCE_DIR = SOURCE_FILE.parent
 WORKING_DIR = SOURCE_DIR / "WORKING_DIR"
 WORKING_DIR.mkdir(exist_ok=True, parents=True)
 
-# créaation de la liste contenant tous les fichiers à traiter
+#création de la liste contenant tous les fichiers à traiter
 pdf_list = [file for file in WORKING_DIR.iterdir() if (file.is_file() and file.suffix.lower() == ".pdf")]
+pdfs = st.file_uploader("Chargez les fichiers à traiter", accept_multiple_files=True)
+
 
 #Expression régulière permettant de détecter le n° de commande/programme/ENQA
 regex_PO = re.compile(r"(4|5)50\d{7}")
@@ -25,7 +28,7 @@ def check_pdf_type(pdf_file):
     """Check if the pdf file is scanned or native
 
     Args:
-        pdf_file (file): file to analyse, whether
+        pdf_file (file): file to analyse
 
     Returns:
         Bool: True if file is scanned, False if native
@@ -65,6 +68,7 @@ def get_pages(pdf_file):
     """
     reader = PdfReader(pdf_file)
     return len(reader.pages)
+
 
 '''Premier tour de boucle: on récupère la date de création (ou plutôt modification) et on va renommer (en mettant la date format YYYYMMDD en début de fichier suivi de "_") tous les fichiers selon 2 cas de figure:
 1. Si le fichier est scanné et contient 1 seule page --> on renomme le fichier
@@ -112,10 +116,11 @@ for file in pdf_list:
 2. Si le fichier est natif --> on détecte si la regex est présente dans le texte du .pdf converti en str. On renomme esnuite le fichier en gardant la date et en utilisant ce numéro trouvé + l'incrément 
 '''
     
-# on refait une nouvelle liste avec les nouveaux fichiers issus du split, et on va ensuite lancer le script ocr pour décrypter le contenu de l'image
+# on refait une nouvelle liste avec les nouveaux fichiers issus du split, et on va ensuite lancer le script ocr sur chaque fichier - s'il est scanné - pour décrypter le contenu de l'image
 pdf_list_after_splitting = [file for file in WORKING_DIR.iterdir() if (file.is_file() and file.suffix.lower() == ".pdf")]
 
-new_list = [] #nouvelle liste servant à gérer les doublons des noms de fichiers
+#nouvelle liste servant à gérer les doublons des noms de fichiers
+new_list = [] 
 
 for file in pdf_list_after_splitting:
     #si fichier pdf scanné:
@@ -165,7 +170,3 @@ for file in pdf_list_after_splitting:
             typer.secho(f"Fichier {file.name} n'a pas pu être renommé --> N° de commande introuvable", fg=typer.colors.RED)
         else:
             typer.secho(f"Fichier {file.name} a été renommé avec succès", fg=typer.colors.GREEN)
-
-
-'''JE RAJOUTE DU TEXTE POUR CREER UNE SECONDE VERSION DU FICHIER
-'''
